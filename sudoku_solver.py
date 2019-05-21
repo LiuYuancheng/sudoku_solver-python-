@@ -61,6 +61,7 @@ class TestUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.editingBt = None # the button user editing now.
 
     # -----------------------------------------------------------------------------
     def initUI(self):
@@ -70,27 +71,27 @@ class TestUI(QMainWindow):
         menubar = self.menuBar()
         clear = menubar.addMenu('Clear All')
         cal = menubar.addMenu('Calculate')
-        self.gridBtList = [[None]*9]*9
-        self.numberList = [[0]*9]*9
+        self.gridBtList = []
+        self.numberList = [[0 for j in range(9)] for i in range(9)]
         self.kb = None
-        print(self.gridBtList)
+        #print(self.gridBtList)
         self.bgWidgets = QWidget(self)  # Init the background widget.
         grid = QGridLayout()
         positions = [(i, j) for i in range(9) for j in range(9)]
+        #print(positions)
         for pos in positions:
             x, y = pos
-            button = QPushButton(str(randint(0, 9)), self.bgWidgets)
+            button = QPushButton(' ', self.bgWidgets)
             button.setMaximumSize(30, 30)
             button.setToolTip(','.join([str(x), str(y)]))
             button.clicked.connect(self.buttonClicked)
-
             grid.addWidget(button, x, y)
+            self.gridBtList.append(button)
         self.bgWidgets.setLayout(grid)
         self.bgWidgets.show()
         self.setCentralWidget(self.bgWidgets)
         
         self.show()
-
 
     def mousePressEvent(self, event):
         
@@ -101,14 +102,19 @@ class TestUI(QMainWindow):
     def buttonClicked(self):
         sender = self.sender()
         # use the tool tip to get the button poisition.
-        print(sender.toolTip())
-        sender.setStyleSheet("background-color: gray")
-        self.buildExamplePopup(sender)
-        if QtGui.qApp.mouseButtons() & QtCore.Qt.RightButton:
-            print("Sense the right click.")
+        x, y = str(sender.toolTip()).split(',')
+        self.editingBt = self.gridBtList[int(x)*9+int(y)]
+        self.editingBt.setStyleSheet("background-color: gray")
 
     def keyPressEvent(self, event):
-        print(int(event.key()-48))
+        keyNum = int(event.key()-48)
+        x, y = str(self.editingBt.toolTip()).split(',')
+        if 0 < keyNum < 10:
+            self.editingBt.setText(str(keyNum))
+            self.numberList[int(x)][int(y)] = keyNum
+        else:
+            self.editingBt.setText(' ')
+            self.numberList[int(x)][int(y)] = 0
 
     def paintEvent(self, event):
         qp = QPainter()
@@ -131,7 +137,6 @@ class TestUI(QMainWindow):
         self.setWindowTitle("Soduku Calculaor by YC")
         self.setWindowIcon(QIcon('icon.jpg'))
         self.menubar = self.menuBar()
-
 
     # -----------------------------------------------------------------------------
     def buildExamplePopup(self, item):

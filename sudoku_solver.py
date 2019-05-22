@@ -10,30 +10,24 @@
 # algrithom: https://stackoverflow.com/questions/1697334/algorithm-for-solving-sudoku
 # -----------------------------------------------------------------------------
 
-import sys, time
-
+import os, sys
+import time
 from PyQt5 import(QtGui, QtCore)
 # import QT UI lib
-from PyQt5.QtCore import (Qt , QObject, QDate, QTime, QDateTime, 
-                          QBasicTimer, QDate, QMimeData, pyqtSignal)
-
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import(
     # Qt main widget:
     QApplication, QMainWindow, QWidget,
     # Qt Layout:
-    QGridLayout, 
+    QGridLayout,
     # Qt components:
-    QToolTip, QPushButton, QMessageBox, QMenu, QAction, QLabel, QComboBox,
-    QLCDNumber, QSlider, QLineEdit, QCheckBox, QProgressBar, QCalendarWidget,
-    # Qt dialogs:
-    QDialog, QInputDialog, QColorDialog, QFontDialog, QFileDialog,
-    qApp)
+    QFileDialog, QPushButton, QMessageBox, QAction, qApp)
+from PyQt5.QtGui import QFont, QPainter,  QFont, QPen
 
-from PyQt5.QtGui import (QIcon, QFont, QPixmap, QDrag)
-from PyQt5.QtGui import (QPainter, QColor, QFont, QPen, QBrush, QPainterPath)
-
-class TestUI(QMainWindow):
-    """ Test UI used to test the QT function """
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+class SudokuCalculator(QMainWindow):
+    """ pyQt5_Sudoku_Calculator """
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -49,12 +43,18 @@ class TestUI(QMainWindow):
         # Add the menu area
         menubar = self.menuBar()
         cal = menubar.addMenu('Action')
+        # 
         impEmAct = QAction('Get result', self)
         impEmAct.triggered.connect(self.calculateSu)
         cal.addAction(impEmAct)
+        # 
         clearAll = QAction('Clear All', self)
         clearAll.triggered.connect(self.clearAll)
         cal.addAction(clearAll)
+        #
+        loadSu = QAction('Load Sudoku', self)
+        loadSu.triggered.connect(self.loadFromFile)
+        cal.addAction(loadSu)
         # Button list used for display the numbers.
         self.gridBtList = [[None for j in range(9)] for i in range(9)]
         # Display area:
@@ -106,8 +106,10 @@ class TestUI(QMainWindow):
                 for idy, button in enumerate(row):
                     button.setText(str(self.numberList[idx][idy]))
             QMessageBox.about(self, "Calculation result", "Get the result in:<%s> sec." %str(period))
+            self.lockRslt = True
         else:
             QMessageBox.about(self, "Calculation result", "[x] The given sudoku got no solution!")
+            self.lockRslt = False
 
 # -----------------------------------------------------------------------------
     def clearAll(self):
@@ -115,8 +117,10 @@ class TestUI(QMainWindow):
         for row in self.gridBtList:
             for button in row:
                 button.setText(' ')
+                button.setStyleSheet("background-color: #E1E1E1")
         self.numberList = [[0 for j in range(9)] for i in range(9)]
         self.editingBt = None
+        self.lockRslt = False
 
 # -----------------------------------------------------------------------------
     def drawLines(self, event, qp):
@@ -169,6 +173,26 @@ class TestUI(QMainWindow):
             self.editingBt.setStyleSheet("background-color: #E1E1E1")
 
 # -----------------------------------------------------------------------------
+    def loadFromFile(self):
+        """ Load unfished Sudoku from file"""
+        fname = QFileDialog.getOpenFileName(self, 'Open file', os.getcwd())
+        if fname[0]:
+            with open(fname[0], 'r') as f:
+                for idx in range(9):
+                    dataStr = f.readline()
+                    numList = dataStr.split(',')
+                    if len(numList) != 9: 
+                        print("The input file is invalid.")
+                        self.clearAll()
+                    for idy, num in enumerate(numList):
+                        self.numberList[idx][idy] = int(num)
+                        if int(num) !=0:
+                            self.gridBtList[idx][idy].setText(str(num))
+                            self.gridBtList[idx][idy].setStyleSheet("background-color: gray")
+        else:
+            print("Input file not exists")
+
+# -----------------------------------------------------------------------------
     def paintEvent(self, event):
         """Draw the grid for the number display area"""
         qp = QPainter()
@@ -190,5 +214,5 @@ class TestUI(QMainWindow):
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    w = TestUI()
+    w = SudokuCalculator()
     sys.exit(app.exec_())

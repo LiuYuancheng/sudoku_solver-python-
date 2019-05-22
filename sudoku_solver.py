@@ -1,21 +1,16 @@
 #!/usr/bin/python
 # -----------------------------------------------------------------------------
-# Name:        pyQtSudoku_Solver.py
+# Name:        pyQt5_Sudoku_Calculator.py
 #
-# Purpose:     This module is used to learn Qt5 ui widgets.(by creat a )
+# Purpose:     This module is used to learn Qt5 ui widgets.(by creat a Sudoku_Calculator)
 #
-# Author:      Yuancheng Liu
+# Author:      Yuancheng Liu <liu_yuan_cheng@Hotmail.com>
 #
 # Created:     2019/03/27
-# Copyright:   YC
-# License:     YC
 # algrithom: https://stackoverflow.com/questions/1697334/algorithm-for-solving-sudoku
 # -----------------------------------------------------------------------------
 
-import sys
-from random import randint
-from collections.abc import Iterable
-
+import sys, time
 
 from PyQt5 import(QtGui, QtCore)
 # import QT UI lib
@@ -24,9 +19,9 @@ from PyQt5.QtCore import (Qt , QObject, QDate, QTime, QDateTime,
 
 from PyQt5.QtWidgets import(
     # Qt main widget:
-    QApplication, QMainWindow, QWidget, QDesktopWidget, QFrame,
+    QApplication, QMainWindow, QWidget,
     # Qt Layout:
-    QHBoxLayout, QVBoxLayout, QGridLayout, QSplitter,
+    QGridLayout, 
     # Qt components:
     QToolTip, QPushButton, QMessageBox, QMenu, QAction, QLabel, QComboBox,
     QLCDNumber, QSlider, QLineEdit, QCheckBox, QProgressBar, QCalendarWidget,
@@ -37,124 +32,161 @@ from PyQt5.QtWidgets import(
 from PyQt5.QtGui import (QIcon, QFont, QPixmap, QDrag)
 from PyQt5.QtGui import (QPainter, QColor, QFont, QPen, QBrush, QPainterPath)
 
-
-nowStr = QDate.currentDate()
-dateTimeStr = QDateTime.currentDateTime()
-timeStr = QTime.currentTime()
-
-
-class keyboardPopup(QWidget):
-    def __init__(self, name):
-        super().__init__()
-        self.name = name
-        self.initUI()
-
-    def initUI(self):
-        lblName = QLabel(self.name, self)
-        self.show()
-
-
 class TestUI(QMainWindow):
-    """ Test UI used to test the QT function. 
-    """
-
+    """ Test UI used to test the QT function """
     def __init__(self):
         super().__init__()
         self.initUI()
         self.editingBt = None # the button user editing now.
+        self.numberList = [[0 for j in range(9)] for i in range(9)]
+        self.lockRslt = False # flag to lock the result
 
     # -----------------------------------------------------------------------------
     def initUI(self):
-        self.setTitle()
+        """ Init the UI"""
         self.setGeometry(300, 300, 300, 350)
+        self.setWindowTitle("pyQt5_Sudoku_Calculator_v0.1")
         # Add the menu area
         menubar = self.menuBar()
-        clear = menubar.addMenu('Clear All')
-        cal = menubar.addMenu('Calculate')
-        self.gridBtList = []
-        self.numberList = [[0 for j in range(9)] for i in range(9)]
-        self.kb = None
-        #print(self.gridBtList)
+        cal = menubar.addMenu('Action')
+        impEmAct = QAction('Get result', self)
+        impEmAct.triggered.connect(self.calculateSu)
+        cal.addAction(impEmAct)
+        clearAll = QAction('Clear All', self)
+        clearAll.triggered.connect(self.clearAll)
+        cal.addAction(clearAll)
+        # Button list used for display the numbers.
+        self.gridBtList = [[None for j in range(9)] for i in range(9)]
+        # Display area:
         self.bgWidgets = QWidget(self)  # Init the background widget.
         grid = QGridLayout()
         positions = [(i, j) for i in range(9) for j in range(9)]
-        #print(positions)
         for pos in positions:
             x, y = pos
             button = QPushButton(' ', self.bgWidgets)
             button.setMaximumSize(30, 30)
+            # use tool tip to identify the button position.
             button.setToolTip(','.join([str(x), str(y)]))
             button.clicked.connect(self.buttonClicked)
             grid.addWidget(button, x, y)
-            self.gridBtList.append(button)
+            self.gridBtList[int(x)][int(y)] = button
         self.bgWidgets.setLayout(grid)
         self.bgWidgets.show()
         self.setCentralWidget(self.bgWidgets)
-        
         self.show()
 
-    def mousePressEvent(self, event):
-        
-        if self.kb:
-            self.kb.close()
-
-
+# -----------------------------------------------------------------------------
     def buttonClicked(self):
+        """ When the user clicked the Sudoku grid area to set a number."""
+        if self.lockRslt:
+            print("The result has been locked, can not edit anymore.")
+            return
+        # Change previous button color to normal:
+        if self.editingBt is not None:
+            x, y = str(self.editingBt .toolTip()).split(',')
+            if self.numberList[int(x)][int(y)] == 0:
+                # reset to background color if the grid has not been set.
+                self.editingBt.setStyleSheet("background-color: #E1E1E1")
+        # High light the editing button.
         sender = self.sender()
         # use the tool tip to get the button poisition.
         x, y = str(sender.toolTip()).split(',')
-        self.editingBt = self.gridBtList[int(x)*9+int(y)]
-        self.editingBt.setStyleSheet("background-color: gray")
+        self.editingBt = self.gridBtList[int(x)][int(y)]
+        self.editingBt.setStyleSheet("background-color: blue")
 
-    def keyPressEvent(self, event):
-        keyNum = int(event.key()-48)
-        x, y = str(self.editingBt.toolTip()).split(',')
-        if 0 < keyNum < 10:
-            self.editingBt.setText(str(keyNum))
-            self.numberList[int(x)][int(y)] = keyNum
+# -----------------------------------------------------------------------------
+    def calculateSu(self):
+        now = time.time()
+        result = self.solveSudoku(self.numberList)
+        period = time.time() - now
+        print("The give sudoku solveing result is: %s" %str(result))
+        if result:
+            # Show the result:
+            for idx, row in enumerate(self.gridBtList):
+                for idy, button in enumerate(row):
+                    button.setText(str(self.numberList[idx][idy]))
+            QMessageBox.about(self, "Calculation result", "Get the result in:<%s> sec." %str(period))
         else:
-            self.editingBt.setText(' ')
-            self.numberList[int(x)][int(y)] = 0
+            QMessageBox.about(self, "Calculation result", "[x] The given sudoku got no solution!")
 
-    def paintEvent(self, event):
-        qp = QPainter()
-        qp.begin(self)
-        self.drawLines(event, qp)
-        qp.end()
+# -----------------------------------------------------------------------------
+    def clearAll(self):
+        """ re-init all the parameters."""
+        for row in self.gridBtList:
+            for button in row:
+                button.setText(' ')
+        self.numberList = [[0 for j in range(9)] for i in range(9)]
+        self.editingBt = None
 
+# -----------------------------------------------------------------------------
     def drawLines(self, event, qp):
-        pen = QPen(Qt.gray, 2, Qt.SolidLine)
-        qp.setPen(pen)
+        """Draw the grid lines."""
+        qp.setPen(QPen(Qt.gray, 2, Qt.SolidLine))
         qp.drawLine(0, 132, 350, 132)
         qp.drawLine(0, 239, 350, 239)
         qp.drawLine(115, 0, 115, 350)
         qp.drawLine(222, 0, 222, 350)
 
-    # -----------------------------------------------------------------------------
-    def setTitle(self):
-        """ Set the title bar of the window.
-        """
-        self.setWindowTitle("Soduku Calculaor by YC")
-        self.setWindowIcon(QIcon('icon.jpg'))
-        self.menubar = self.menuBar()
+# -----------------------------------------------------------------------------
+    def findNextCellToFill(self, grid, i, j):
+        """ find the next grid position whick can fill in."""
+        for x in range(i, 9):
+            for y in range(j, 9):
+                if grid[x][y] == 0: return x, y
+        for x in range(0, 9):
+            for y in range(0, 9):
+                if grid[x][y] == 0: return x, y
+        return -1, -1
 
-    # -----------------------------------------------------------------------------
-    def buildExamplePopup(self, item):
-        self.kb = QDialog()
-        self.kb.setWindowFlags(Qt.FramelessWindowHint)
-        bList = []
-        for i in range(3):
-            for j in range(3):
-                b = QPushButton(str((i+1)*(j+1)),self.kb)
-                bList.append(b)
-                b.setMaximumSize(20, 20)
-                b.move(i*20,j*20)
+# -----------------------------------------------------------------------------
+    def isValid(self, grid, i, j, e):
+        """ Check whether the fill in numbers in the grid are valid"""
+        rowOk = all([e != grid[i][x] for x in range(9)])
+        if rowOk:
+            columnOk = all([e != grid[x][j] for x in range(9)])
+            if columnOk:
+                # finding the top left x,y co-ordinates of the section containing the i,j cell
+                secTopX, secTopY = 3 *(i//3), 3 *(j//3) #floored quotient should be used here. 
+                for x in range(secTopX, secTopX+3):
+                    for y in range(secTopY, secTopY+3):
+                        if grid[x][y] == e:
+                            return False
+                return True
+        return False
 
-        self.kb.setWindowTitle(" ")
-        self.kb.setWindowModality(Qt.ApplicationModal)
-        self.kb.setGeometry(100, 100, 60, 60)
-        self.kb.exec_()
-    
+# -----------------------------------------------------------------------------
+    def keyPressEvent(self, event):
+        """ Handle all the user number input."""
+        keyNum = int(event.key()-48) # Convert the key AsicII to number.
+        x, y = str(self.editingBt.toolTip()).split(',')
+        if 0 < keyNum < 10:
+            self.editingBt.setText(str(keyNum))
+            self.numberList[int(x)][int(y)] = keyNum
+            self.editingBt.setStyleSheet("background-color: gray")
+        else:
+            self.editingBt.setText(' ')
+            self.numberList[int(x)][int(y)] = 0
+            self.editingBt.setStyleSheet("background-color: #E1E1E1")
+
+# -----------------------------------------------------------------------------
+    def paintEvent(self, event):
+        """Draw the grid for the number display area"""
+        qp = QPainter()
+        qp.begin(self)
+        self.drawLines(event, qp)
+        qp.end()
+
+# -----------------------------------------------------------------------------
+    def solveSudoku(self, grid, i=0, j=0):
+        i,j = self.findNextCellToFill(grid, i, j)
+        if i == -1: return True
+        for e in range(1,10):
+            if self.isValid(grid,i,j,e):
+                grid[i][j] = e
+                if self.solveSudoku(grid, i, j): return True
+                # Undo the current cell for backtracking
+                grid[i][j] = 0
+        return False
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)

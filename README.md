@@ -26,12 +26,12 @@ Run
 
 	$ python sudoku_solver.py
 
-.. image::	InitUI.png
+![Screenshot](Init_UI.png)
 
 When the grid appeared, press the grid and use keyboard to input the sudoku numbers
 
-.. image::	load.png
+![Screenshot](Load.png)
 
 Then press the "Get reuslt"
 
-.. image::	UI.png
+![Screenshot](UI.png)

@@ -4,7 +4,7 @@ Introduction
 ------------
 Name:        pyQt5_Sudoku_Calculator.py
 
-Purpose:     This module is used create a sudoku calculator to let user type in the Sudoku and get the reuslt.
+Purpose: This module is used create a sudoku calculator to let user type in the Sudoku 			and get the reuslt.
 
 Author:      Yuancheng Liu <liu_yuan_cheng@Hotmail.com>
 
@@ -22,7 +22,6 @@ Run: python sudoku_solver.py
 
 Run
 ----------
-.. code:: bash
 
 	$ python sudoku_solver.py
 
